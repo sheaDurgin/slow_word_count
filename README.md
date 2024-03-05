@@ -11,6 +11,9 @@ Constraints:
 No Artificial Delays: Solutions must not include sleep timers, deliberate infinite loops, or any hardcoded delays.
 Standard Libraries Only: Use of external libraries is prohibited. Solutions should rely solely on standard libraries included in the language's default installation.
 Algorithmic and Structural Inefficiency: Inefficiencies should arise from the choice of algorithms, data structures, and processing techniques. This includes, but is not limited to, unnecessary data structures, repeated scans of the text, inefficient string handling, and the avoidance of efficient lookup methods.
+Cannot keep a timer and then return once you're close to the 5 minutes.
+No measuring.
+A single solution for all tests.
 
 Correctness Mandatory: Despite the inefficiency, solutions must accurately count word occurrences.
 

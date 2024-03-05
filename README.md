@@ -7,6 +7,19 @@ Challenge Details:
 Input: An external text file with a word count of 1 to 5,000 words.
 Output: A list of unique words in the text and the number of times each word appears, in any order. 
 
+Example:
+
+Input “VividCloud is a great place vividcloud is cool”
+
+Output: 
+vividcloud 2
+is 2
+a 1
+great 1
+place 1
+cool 1
+
+
 Constraints:
 No Artificial Delays: Solutions must not include sleep timers, deliberate infinite loops, or any hardcoded delays.
 Standard Libraries Only: Use of external libraries is prohibited. Solutions should rely solely on standard libraries included in the language's default installation.

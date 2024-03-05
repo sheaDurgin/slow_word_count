@@ -11,7 +11,7 @@ Example:<br>
 
 Input “VividCloud is a great place vividcloud is cool”<br>
 
-Output: 
+Output: <br>
 vividcloud 2<br>
 is 2<br>
 a 1<br>

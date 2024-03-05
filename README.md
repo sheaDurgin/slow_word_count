@@ -6,7 +6,7 @@ Develop a program that counts the occurrences of each word (case insensitive) in
 Challenge Details:
 Input: An external text file with a word count of 1 to 5,000 words.
 Output: A list of unique words in the text and the number of times each word appears, in any order. 
-<br>
+<br><br>
 Example:<br>
 
 Input “VividCloud is a great place vividcloud is cool”<br>

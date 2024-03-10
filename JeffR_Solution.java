@@ -1,19 +1,22 @@
-/**
- * to test a specific file, pass the filespec on the command-line
- * e.g.
- * java JeffR_Solution.java someFile.txt
- * -OR-
- * javac JeffR_Solution.java
- * java JeffR_Solution someFile.txt
- */
-/**
- * Count the frequency of words in a file, S-L-O-W-L-Y
- */
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// to test a specific file, pass the filespec on the command-line
+// e.g.
+// java JeffR_Solution.java someFile.txt [someFile2.txt...]
+// -OR-
+// javac JeffR_Solution.java
+// java JeffR_Solution someFile.txt [someFile2.txt...]
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Count the frequency of words in a file, S-L-O-W-L-Y
+//
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -22,25 +25,31 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
 public class JeffR_Solution {
 
     public static IWordFrequencyCounter getWordFrequencyCounterImpl() {
-        // TODO Auto-generated method stub
-        return new FastCounter();
+        // return new FastCounter();
+        return new FastCounter2();
     }
 
-
-    public static int countWordFrequencyInFile(File testFile) {
+    ////
+    // the common workhorse
+    //
+    // validates filespec & access, times the primary algo, dumps the results
+    //
+    private static int countWordFrequencyInFile(File testFile) {
         String testFileName;
         try {
+            // canonical path will be fully qualified
             testFileName = testFile.getCanonicalPath();
 
+            // basic validation- file exists
             if( !testFile.exists()) {
                 System.err.println("testFile " + testFileName + " does not exist.");
                 return -2; // DOS file not found
             }
 
+            // basic validation- we have access
             if( !testFile.canRead()) {
                 System.err.println("testFile " + testFileName + " cannot be read.");
                 return -5; // DOS access denied
@@ -50,15 +59,26 @@ public class JeffR_Solution {
             System.out.println( "~~~~~~~~~~~");
             System.out.println("Processing " + testFileName + "...");
 
+            // time the algo performance
             long startTime = System.nanoTime();
+
+            // the actual algo, utilizing common interface
             IWordFrequencyCounter iwfc = getWordFrequencyCounterImpl();
             iwfc.setup(testFile);
             for(String nextWord; (nextWord = iwfc.getNextWord()) != null; ) {
                 iwfc.processWord(nextWord);
             }
+            // we're done processing the file, 
+            // we've counted how often each unique word 
+            // appears in the file (non-case-sensitive)
+
+            // time the algo performance;
+            // note this doesn't include jvm startup time,
+            // some initialization and some console i/o esp. dumping the results
             long endTime = System.nanoTime();
             double totalTimeMillis = 1.0 * (endTime - startTime) / 1000000.0;
 
+            // get the list of unique words and sort for easier eyeball valiation
             Map<String,Integer> wordCounts = iwfc.getWordCounts();
             List<String> words = new ArrayList<>(wordCounts.keySet());
             words.sort(new Comparator<String>(){
@@ -70,6 +90,7 @@ public class JeffR_Solution {
 
             });
 
+            // dump the unique words and their counts
             System.out.println( "-----------");
             System.out.println( "Word Counts");
             System.out.println( "-----------");
@@ -80,10 +101,12 @@ public class JeffR_Solution {
             System.out.println( "...Processed " + words.size() + " unique words in " + totalTimeMillis + "ms.");
             System.out.println( "===========");
 
+            // return the total # of unique words in the file
             return words.size();
 
         }
         catch( IOException ex) {
+            // some error during processing- dump the deets and return error code indicator
             System.err.println("Failure Processing " + ex.getClass().getName() + " " + ex.getMessage());
             return -(0x1F); // DOS general failure
         }
@@ -92,6 +115,7 @@ public class JeffR_Solution {
     
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
     // external entry points
     //
 
@@ -145,6 +169,73 @@ interface IWordFrequencyCounter {
 
 
 }
+
+/**
+ * similar to original FastCounter (below), 
+ * but much simpler file i/o
+ */
+class FastCounter2 implements IWordFrequencyCounter {
+
+    Map<String,Integer> wordCounts = new HashMap<>();
+
+    List<String> lines;
+
+    public void setup(File testFile) throws IOException {
+        lines = Files.readAllLines(Path.of(testFile.getAbsolutePath()));
+    }
+
+    int lineNum = 0;
+    Pattern pattern = Pattern.compile("[^\s]+");
+    Matcher matcher;
+
+    public String getNextWord() throws IOException {
+        String nextWord = null;
+        boolean foundNextWord = false;
+        while( !foundNextWord) {
+            if( matcher == null ) {
+                if( lineNum < lines.size())
+                    matcher = pattern.matcher(lines.get(lineNum));
+                else
+                    return null;
+            }
+
+            if( matcher.find()) {                 
+                nextWord = matcher.group();
+                foundNextWord = true;
+            }
+            else {
+                matcher = null;
+                lineNum++;
+            }
+        }
+             
+        return nextWord;
+
+    }
+
+    public void processWord(String nextWord) {
+        String key = nextWord.toLowerCase();
+        Integer countSoFar = wordCounts.get(key);
+        boolean firstTime = countSoFar == null || countSoFar.intValue() == 0;
+        if( !firstTime ) {
+            countSoFar++;
+        }
+        else {
+            countSoFar = Integer.valueOf(1);
+        }
+        wordCounts.put(key, countSoFar);
+
+    }
+
+    public Map<String, Integer> getWordCounts() {
+        return wordCounts;
+    }
+
+
+    
+
+}
+
 
 class FastCounter implements IWordFrequencyCounter {
 

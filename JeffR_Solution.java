@@ -202,12 +202,10 @@ public class JeffR_Solution {
                 System.out.println( word + ": " + wordCounts.get(word));
             }
             System.out.println( "___________");
-            System.out.println( "...Processed in " + totalTimeMillis + "ms.");
+            System.out.println( "...Processed " + words.size() + " unique words in " + totalTimeMillis + "ms.");
             System.out.println( "===========");
 
-            
-
-            return 0;
+            return words.size();
 
         }
         catch( IOException ex) {

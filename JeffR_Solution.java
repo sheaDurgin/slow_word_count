@@ -28,8 +28,8 @@ import java.util.regex.Pattern;
 public class JeffR_Solution {
 
     public static IWordFrequencyCounter getWordFrequencyCounterImpl() {
-        // return new FastCounter();
-        return new FastCounter2();
+        return new FastCounter();
+        // return new FastCounter2();
     }
 
     ////
@@ -55,8 +55,8 @@ public class JeffR_Solution {
                 return -5; // DOS access denied
             }
 
-
-            System.out.println( "~~~~~~~~~~~");
+            System.out.println();
+            System.out.println( "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
             System.out.println("Processing " + testFileName + "...");
 
             // time the algo performance
@@ -170,10 +170,10 @@ interface IWordFrequencyCounter {
 
 }
 
-/**
- * similar to original FastCounter (below), 
- * but much simpler file i/o
- */
+//
+// similar to original FastCounter (below), 
+// but much simpler file i/o
+//
 class FastCounter2 implements IWordFrequencyCounter {
 
     Map<String,Integer> wordCounts = new HashMap<>();
@@ -236,7 +236,10 @@ class FastCounter2 implements IWordFrequencyCounter {
 
 }
 
-
+//
+// original (fast, presumably) impl
+//
+// 
 class FastCounter implements IWordFrequencyCounter {
 
     static final boolean VERBOSE = false;
@@ -272,12 +275,18 @@ class FastCounter implements IWordFrequencyCounter {
     Pattern pattern = Pattern.compile("[^\s\r\n]+");
     Matcher matcher;
 
+    //
+    // the getNextWord impl theoretically provides fast & efficient file i/o,
+    // but with a little tweaking (small buffer size, no BufferedReader, &c)
+    // might be just the opposite
+    //
     public String getNextWord() throws IOException {
 
         String nextWord = null;
         boolean foundNextWord = false;
         while( !foundNextWord ) {
 
+            // get some content to process if we don't already have some from the last pass
             if( charsInBuff == 0 && !eof) {
                 int charsToRead = FILE_BUFF_SIZE - offset;
                 int actuallyRead = fileReader.read(buff, offset, charsToRead);
@@ -289,45 +298,62 @@ class FastCounter implements IWordFrequencyCounter {
                         // *maybe* more content in the file
                     }
                     else {
+                        // if we got less than the size requested, we've reached the end of file content
                         eof = true;
                     }
                 }
                 else {
+                    // if read() return value is <= 0, there is no more file content available
                     charsInBuff = 0;
                     eof = true;
                 }
             }
 
+            // if we have no more content to process, return result(s) from prior pass (if any)
             if( charsInBuff == 0) {
                 return nextWord;
             }
 
+            // turn what we got from the file into a String for easier handling
             String inBuff = new String(buff,offset,charsInBuff);
 
             if( VERBOSE ) {
                 System.out.println( "Processing `" + inBuff + "`");
             }
 
+            // if we don't have a pending matcher, create one
             if( matcher == null ) {
                 matcher = pattern.matcher(inBuff);
             }
 
+            // find the next word, if any
             if( matcher.find()) {
+                // found a word in the file
                 if( nextWord == null ) {
+                    // we don't have a dangling word, take the word we found as the whole word
                     nextWord = matcher.group();
                 }
                 else {
+                    // we had a dangler
+
                     if( matcher.start() > 0) {
+                        // ...but now we've determined we had whitespace between it and the new word (fragment?)
+                        // reset the matcher & take the dangler as the next word, 
+                        // we'll pick the new word up on the next pass
                         matcher = null;
                         return nextWord;
                     }
+                    // now intervening whitespace between this word and the last word, combine into a single word
                     nextWord = nextWord.concat(matcher.group());
                 }
+
+                // the end of this match is where we start looking for the next word
                 int endsAt = matcher.end();
                 if( endsAt > 0 ) {
                     offset += endsAt;
                     charsInBuff -= endsAt;
                     if( charsInBuff > 0 ) {
+                        // more chars in the buffer, so we found the end of the word
                         foundNextWord = true;
                     }
                     else {
@@ -341,20 +367,25 @@ class FastCounter implements IWordFrequencyCounter {
                 }
 
                 if( offset >= FILE_BUFF_SIZE) {
+                    // nothing more in the buffer, reset to read more on next pass
                     offset = 0;
                     charsInBuff = 0;
                 }
             }
             else {
+                // nothing found, reset to read more on next pass
                 offset = 0;
                 charsInBuff = 0;
                 if( nextWord != null ) {
+                    // if we has a dangler we'll bail out
                     foundNextWord = true;
                 }
             }
 
+            // we exhausted this matcher, reset it
             matcher = null;
 
+            // no more input available, bail out
             if( eof ) {
                 break;
             }

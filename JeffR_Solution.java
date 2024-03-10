@@ -23,150 +23,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-public class JeffR_Solution implements IWordFrequencyCounter {
-
-    static final boolean VERBOSE = false;
-
-    Map<String,Integer> wordCounts = new HashMap<>();
-
-    public Map<String, Integer> getWordCounts() {
-        return wordCounts;
-    }
-    
-    
-    public void processWord(String nextWord) {
-        String key = nextWord.toLowerCase();
-        Integer countSoFar = wordCounts.get(key);
-        boolean firstTime = countSoFar == null || countSoFar.intValue() == 0;
-        if( !firstTime ) {
-            countSoFar++;
-        }
-        else {
-            countSoFar = Integer.valueOf(1);
-        }
-        wordCounts.put(key, countSoFar);
-
-    }
-
-    static final int FILE_BUFF_SIZE = 1; // 64*1024;
-    BufferedReader fileReader;
-    char buff[] = new char[FILE_BUFF_SIZE+1];
-    int charsInBuff = 0;
-    int offset = 0;
-    boolean eof = false;
-
-    Pattern pattern = Pattern.compile("[^\s\r\n]+");
-    Matcher matcher;
-
-    public String getNextWord() throws IOException {
-
-        String nextWord = null;
-        boolean foundNextWord = false;
-        while( !foundNextWord ) {
-
-            if( charsInBuff == 0 && !eof) {
-                int charsToRead = FILE_BUFF_SIZE - offset;
-                int actuallyRead = fileReader.read(buff, offset, charsToRead);
-                if( actuallyRead > 0 ) {
-                    charsInBuff = actuallyRead;
-                    buff[offset+actuallyRead] = '\0';
-
-                    if( actuallyRead == charsToRead ) {
-                        // *maybe* more content in the file
-                    }
-                    else {
-                        eof = true;
-                    }
-                }
-                else {
-                    charsInBuff = 0;
-                    eof = true;
-                }
-            }
-
-            if( charsInBuff == 0) {
-                return nextWord;
-            }
-
-            String inBuff = new String(buff,offset,charsInBuff);
-
-            if( VERBOSE ) {
-                System.out.println( "Processing `" + inBuff + "`");
-            }
-
-            if( matcher == null ) {
-                matcher = pattern.matcher(inBuff);
-            }
-
-            if( matcher.find()) {
-                if( nextWord == null ) {
-                    nextWord = matcher.group();
-                }
-                else {
-                    if( matcher.start() > 0) {
-                        matcher = null;
-                        return nextWord;
-                    }
-                    nextWord = nextWord.concat(matcher.group());
-                }
-                int endsAt = matcher.end();
-                if( endsAt > 0 ) {
-                    offset += endsAt;
-                    charsInBuff -= endsAt;
-                    if( charsInBuff > 0 ) {
-                        foundNextWord = true;
-                    }
-                    else {
-                        // bumped up against the end of the buffer, we might have split a word across a read
-                    }
-                    
-                }
-                else {
-                    offset++;
-                    charsInBuff--;
-                }
-
-                if( offset >= FILE_BUFF_SIZE) {
-                    offset = 0;
-                    charsInBuff = 0;
-                }
-            }
-            else {
-                offset = 0;
-                charsInBuff = 0;
-                if( nextWord != null ) {
-                    foundNextWord = true;
-                }
-            }
-
-            matcher = null;
-
-            if( eof ) {
-                break;
-            }
-            
-        }
-
-        return nextWord;
-    }
-
-    public void setup(File testFile) throws IOException {
-
-        fileReader = new BufferedReader(new FileReader(testFile));
-        
-        buff[0] = '\0';
-        charsInBuff = 0;
-        offset = 0;
-        
-        eof = false;
-
-        wordCounts.clear();
-    }
-
+public class JeffR_Solution {
 
     public static IWordFrequencyCounter getWordFrequencyCounterImpl() {
         // TODO Auto-generated method stub
-        return new JeffR_Solution();
+        return new FastCounter();
     }
 
 
@@ -283,4 +144,145 @@ interface IWordFrequencyCounter {
     public Map<String,Integer> getWordCounts();
 
 
+}
+
+class FastCounter implements IWordFrequencyCounter {
+
+    static final boolean VERBOSE = false;
+
+    Map<String,Integer> wordCounts = new HashMap<>();
+
+    public Map<String, Integer> getWordCounts() {
+        return wordCounts;
+    }
+    
+    
+    public void processWord(String nextWord) {
+        String key = nextWord.toLowerCase();
+        Integer countSoFar = wordCounts.get(key);
+        boolean firstTime = countSoFar == null || countSoFar.intValue() == 0;
+        if( !firstTime ) {
+            countSoFar++;
+        }
+        else {
+            countSoFar = Integer.valueOf(1);
+        }
+        wordCounts.put(key, countSoFar);
+
+    }
+
+    static final int FILE_BUFF_SIZE = 64*1024;
+    BufferedReader fileReader;
+    char buff[] = new char[FILE_BUFF_SIZE+1];
+    int charsInBuff = 0;
+    int offset = 0;
+    boolean eof = false;
+
+    Pattern pattern = Pattern.compile("[^\s\r\n]+");
+    Matcher matcher;
+
+    public String getNextWord() throws IOException {
+
+        String nextWord = null;
+        boolean foundNextWord = false;
+        while( !foundNextWord ) {
+
+            if( charsInBuff == 0 && !eof) {
+                int charsToRead = FILE_BUFF_SIZE - offset;
+                int actuallyRead = fileReader.read(buff, offset, charsToRead);
+                if( actuallyRead > 0 ) {
+                    charsInBuff = actuallyRead;
+                    buff[offset+actuallyRead] = '\0';
+
+                    if( actuallyRead == charsToRead ) {
+                        // *maybe* more content in the file
+                    }
+                    else {
+                        eof = true;
+                    }
+                }
+                else {
+                    charsInBuff = 0;
+                    eof = true;
+                }
+            }
+
+            if( charsInBuff == 0) {
+                return nextWord;
+            }
+
+            String inBuff = new String(buff,offset,charsInBuff);
+
+            if( VERBOSE ) {
+                System.out.println( "Processing `" + inBuff + "`");
+            }
+
+            if( matcher == null ) {
+                matcher = pattern.matcher(inBuff);
+            }
+
+            if( matcher.find()) {
+                if( nextWord == null ) {
+                    nextWord = matcher.group();
+                }
+                else {
+                    if( matcher.start() > 0) {
+                        matcher = null;
+                        return nextWord;
+                    }
+                    nextWord = nextWord.concat(matcher.group());
+                }
+                int endsAt = matcher.end();
+                if( endsAt > 0 ) {
+                    offset += endsAt;
+                    charsInBuff -= endsAt;
+                    if( charsInBuff > 0 ) {
+                        foundNextWord = true;
+                    }
+                    else {
+                        // bumped up against the end of the buffer, we might have split a word across a read
+                    }
+                    
+                }
+                else {
+                    offset++;
+                    charsInBuff--;
+                }
+
+                if( offset >= FILE_BUFF_SIZE) {
+                    offset = 0;
+                    charsInBuff = 0;
+                }
+            }
+            else {
+                offset = 0;
+                charsInBuff = 0;
+                if( nextWord != null ) {
+                    foundNextWord = true;
+                }
+            }
+
+            matcher = null;
+
+            if( eof ) {
+                break;
+            }
+            
+        }
+
+        return nextWord;
+    }
+
+    public void setup(File testFile) throws IOException {
+
+        fileReader = new BufferedReader(new FileReader(testFile));
+        
+        buff[0] = '\0';
+        charsInBuff = 0;
+        offset = 0;
+        
+        eof = false;
+
+        wordCounts.clear();
+    }
 }

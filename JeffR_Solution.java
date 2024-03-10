@@ -23,11 +23,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-public class JeffR_Solution {
+public class JeffR_Solution implements IWordFrequencyCounter {
 
     static final boolean VERBOSE = false;
 
     Map<String,Integer> wordCounts = new HashMap<>();
+
+    public Map<String, Integer> getWordCounts() {
+        return wordCounts;
+    }
+    
     
     public void processWord(String nextWord) {
         String key = nextWord.toLowerCase();
@@ -145,7 +150,7 @@ public class JeffR_Solution {
         return nextWord;
     }
 
-    public void setup(File testFile) throws FileNotFoundException {
+    public void setup(File testFile) throws IOException {
 
         fileReader = new BufferedReader(new FileReader(testFile));
         
@@ -159,7 +164,13 @@ public class JeffR_Solution {
     }
 
 
-    public int countWordFrequencyInFile(File testFile) {
+    public static IWordFrequencyCounter getWordFrequencyCounterImpl() {
+        // TODO Auto-generated method stub
+        return new JeffR_Solution();
+    }
+
+
+    public static int countWordFrequencyInFile(File testFile) {
         String testFileName;
         try {
             testFileName = testFile.getCanonicalPath();
@@ -174,21 +185,20 @@ public class JeffR_Solution {
                 return -5; // DOS access denied
             }
 
+
             System.out.println( "~~~~~~~~~~~");
             System.out.println("Processing " + testFileName + "...");
 
             long startTime = System.nanoTime();
-            setup(testFile);
-            for(String nextWord; (nextWord = getNextWord()) != null; ) {
-                processWord(nextWord);
+            IWordFrequencyCounter iwfc = getWordFrequencyCounterImpl();
+            iwfc.setup(testFile);
+            for(String nextWord; (nextWord = iwfc.getNextWord()) != null; ) {
+                iwfc.processWord(nextWord);
             }
             long endTime = System.nanoTime();
             double totalTimeMillis = 1.0 * (endTime - startTime) / 1000000.0;
-            
 
-            System.out.println( "-----------");
-            System.out.println( "Word Counts");
-            System.out.println( "-----------");
+            Map<String,Integer> wordCounts = iwfc.getWordCounts();
             List<String> words = new ArrayList<>(wordCounts.keySet());
             words.sort(new Comparator<String>(){
 
@@ -198,6 +208,10 @@ public class JeffR_Solution {
                 }
 
             });
+
+            System.out.println( "-----------");
+            System.out.println( "Word Counts");
+            System.out.println( "-----------");
             for( String word : words ) {
                 System.out.println( word + ": " + wordCounts.get(word));
             }
@@ -222,7 +236,7 @@ public class JeffR_Solution {
 
     public static int processFile(File testFile) {
 
-        return new JeffR_Solution().countWordFrequencyInFile(testFile);
+        return countWordFrequencyInFile(testFile);
 
     }
 
@@ -257,4 +271,16 @@ public class JeffR_Solution {
         }
 	
 	}
+
+}
+
+interface IWordFrequencyCounter {
+
+    public void setup(File testFile) throws IOException;    
+    public String getNextWord() throws IOException;
+    public void processWord(String nextWord);
+
+    public Map<String,Integer> getWordCounts();
+
+
 }

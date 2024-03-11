@@ -94,11 +94,18 @@ public class JeffR_Solution {
             System.out.println( "-----------");
             System.out.println( "Word Counts");
             System.out.println( "-----------");
+            int totalWordsInFile = 0;
             for( String word : words ) {
-                System.out.println( word + ": " + wordCounts.get(word));
+                Integer wordFrequency = wordCounts.get(word);
+                totalWordsInFile += wordFrequency;
+                System.out.println( word + ": " + wordFrequency);
             }
             System.out.println( "___________");
-            System.out.println( "...Processed " + words.size() + " unique words in " + totalTimeMillis + "ms.");
+            // dump the total unique word count & time to execute
+            System.out.println( "...Processed " 
+                    + totalWordsInFile + " total words"
+                    + " with " + words.size() + " unique words"
+                    + " in " + totalTimeMillis + "ms.");
             System.out.println( "===========");
 
             // return the total # of unique words in the file
@@ -159,6 +166,10 @@ public class JeffR_Solution {
 
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// define a standard interface so we can try out different algos
+//
 interface IWordFrequencyCounter {
 
     public void setup(File testFile) throws IOException;    
@@ -166,10 +177,9 @@ interface IWordFrequencyCounter {
     public void processWord(String nextWord);
 
     public Map<String,Integer> getWordCounts();
-
-
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // similar to original FastCounter (below), 
 // but much simpler file i/o
@@ -236,9 +246,10 @@ class FastCounter2 implements IWordFrequencyCounter {
 
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// original (fast, presumably) impl
-//
+// original (fast, presumably) impl;
+// utilizes standard lib
 // 
 class FastCounter implements IWordFrequencyCounter {
 

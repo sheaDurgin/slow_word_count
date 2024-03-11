@@ -78,7 +78,8 @@ public class JeffR_Solution {
             // note this doesn't include jvm startup time,
             // some initialization and some console i/o esp. dumping the results
             long endTime = System.nanoTime();
-            double totalTimeMillis = 1.0 * (endTime - startTime) / 1000000.0;
+            long elapsedTime = endTime - startTime;
+            double totalTimeMillis = 1.0 * elapsedTime / 1000000.0;
 
             // get the list of unique words and sort for easier eyeball valiation
             Map<String,Integer> wordCounts = iwfc.getWordCounts();
@@ -104,13 +105,14 @@ public class JeffR_Solution {
             }
             System.out.println( "___________");
             endTime = System.nanoTime();
-            totalTimeMillis = 1.0 * (endTime - startTime) / 1000000.0;
+            elapsedTime = endTime - startTime;
+            totalTimeMillis = 1.0 * elapsedTime / 1000000.0;
 
             // dump the total unique word count & time to execute
             System.out.println( "...Processed " 
                     + totalWordsInFile + " total words"
                     + " with " + words.size() + " unique words"
-                    + " in " + totalTimeMillis + "ms.");
+                    + " in " /* + totalTimeMillis + "ms." */ + timeElapsed(elapsedTime));
             System.out.println( "===========");
 
             // return the total # of unique words in the file
@@ -123,6 +125,39 @@ public class JeffR_Solution {
             return -(0x1F); // DOS general failure
         }
 
+    }
+
+    private static String timeElapsed(long nanos) {
+
+        String elapsed = "" + nanos + "ns";
+        if( nanos < 1000000 ) {
+            return elapsed;
+        }
+
+        long millis = nanos / 1000000;
+        nanos = nanos % 1000000;
+
+        elapsed = "" + nanos + "ns";
+
+        if( millis < 1000 ) {
+            return ("" + millis + "ms") + " " + elapsed;
+        }
+
+        long secs = millis / 1000;
+        millis = millis % 1000;
+
+        elapsed = ("" + millis + "ms") + " " + elapsed;
+
+        if( secs < 60 ) {
+            return ("" + secs + "s") + " " + elapsed;
+        }
+
+        long mins = secs / 60;
+        secs = secs % 60;
+
+        elapsed = ("" + secs + "s") + " " + elapsed;
+
+        return ("" + mins + "m") + " " + elapsed;
     }
     
 
@@ -241,9 +276,22 @@ class SlowCounter extends WordFrequencyCounterBase {
         return nextWord;
     }
 
+    private int length(String w) {
+        int l = 0;
+        for( ;; l++) {
+            try {
+                w.charAt(l);
+            }
+            catch( IndexOutOfBoundsException ex ) {
+                break;
+            }
+        }
+        return l;
+    }
+
     private boolean wordsEqual(String a, String b) {
         boolean equals = true;
-        equals = a.length() == b.length();
+        equals = length(a) == b.length();
         for( int i = 0; i < Math.max(a.length(), b.length()); i++) {
             if( i < a.length() && i < b.length()) {
                 equals &= a.charAt(i) == b.charAt(i);

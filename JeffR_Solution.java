@@ -28,14 +28,15 @@ import java.util.regex.Pattern;
 public class JeffR_Solution {
 
     public static IWordFrequencyCounter getWordFrequencyCounterImpl() {
-        return new FastCounter();
+        // return new FastCounter();
         // return new FastCounter2();
+        return new SlowCounter();
     }
 
     ////
     // the common workhorse
     //
-    // validates filespec & access, times the primary algo, dumps the results
+    // validates filespec & access, times the primary algo defined by the interface, dumps the results
     //
     private static int countWordFrequencyInFile(File testFile) {
         String testFileName;
@@ -68,6 +69,7 @@ public class JeffR_Solution {
             for(String nextWord; (nextWord = iwfc.getNextWord()) != null; ) {
                 iwfc.processWord(nextWord);
             }
+            iwfc.finish();
             // we're done processing the file, 
             // we've counted how often each unique word 
             // appears in the file (non-case-sensitive)
@@ -101,6 +103,9 @@ public class JeffR_Solution {
                 System.out.println( word + ": " + wordFrequency);
             }
             System.out.println( "___________");
+            endTime = System.nanoTime();
+            totalTimeMillis = 1.0 * (endTime - startTime) / 1000000.0;
+
             // dump the total unique word count & time to execute
             System.out.println( "...Processed " 
                     + totalWordsInFile + " total words"
@@ -175,8 +180,211 @@ interface IWordFrequencyCounter {
     public void setup(File testFile) throws IOException;    
     public String getNextWord() throws IOException;
     public void processWord(String nextWord);
+    public void finish() throws IOException;
 
     public Map<String,Integer> getWordCounts();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// well, that's the goal, at least
+//
+class SlowCounter extends WordFrequencyCounterBase {
+
+    File testFile;
+    int offset = 0;
+
+    public void setup(File testFile) throws IOException {
+        this.testFile = testFile;
+        wordCounts.clear();
+        System.out.println();
+    }
+
+    public String getNextWord() throws IOException {
+        String nextWord = null;
+        boolean foundNextWord = false;
+        
+        FileReader fileReader = new FileReader(testFile);
+        for( int pos = 0; pos < offset; pos++) {
+            fileReader.read();
+        }
+        while( !foundNextWord) {
+            int nextChar = fileReader.read();
+            if( nextChar < 0 ) {
+                break;
+            }
+            // System.out.print("" + nextChar + ",");
+            offset++;
+            String nextCharAsString = new String( new char[]{ (char)nextChar });
+            System.out.print(nextCharAsString);
+            Pattern pattern = Pattern.compile("[\s\r\n\t\f]");
+            Matcher matcher = pattern.matcher(nextCharAsString);
+            if( matcher.matches() || nextChar == 0) {
+                foundNextWord = nextWord != null;
+            } else if( nextWord == null) {
+                nextWord = nextCharAsString;
+            }
+            else {
+                char[] wordSoFar = new char[nextWord.length()+1];
+                nextWord.getChars(0, nextWord.length(), wordSoFar, 0);
+                wordSoFar[nextWord.length()] = (char)nextChar;
+                nextWord = new String(wordSoFar);
+            }
+
+        }
+        while( !(fileReader.read() < 0))
+            ;
+        fileReader.close();
+        return nextWord;
+    }
+
+    private boolean wordsEqual(String a, String b) {
+        boolean equals = true;
+        equals = a.length() == b.length();
+        for( int i = 0; i < Math.max(a.length(), b.length()); i++) {
+            if( i < a.length() && i < b.length()) {
+                equals &= a.charAt(i) == b.charAt(i);
+            }
+            else {
+                equals = false;
+            }
+        }
+        return equals;
+    }
+
+    private String storedCase(String word) {
+        String stored = new String();
+        for( int index = 0; index < word.length(); index++ ) {
+            String next = new String( new char[]{word.charAt(index)} );
+            if( index % 2 != 0) {
+                next = next.toLowerCase();
+            }
+            else {
+                next = next.toUpperCase();
+            }
+            stored = stored.concat(next);
+        }
+        return stored;
+    }
+
+    private String toUpperCase(String word) {
+        String uppered = new String();
+        char[] buff = new char[word.length()];
+        for( int i = 0; i < word.length(); i++) {
+            buff[i] = word.charAt(i);
+            uppered = uppered.concat(new String(new char[]{buff[i]}).toUpperCase());
+        }
+        return uppered;
+
+    }
+
+    private String toLowerCase(String word) {
+        String lowered = new String();
+        char[] buff = new char[word.length()];
+        for( int i = 0; i < word.length(); i++) {
+            buff[i] = word.charAt(i);
+            lowered = lowered.concat(new String(new char[]{buff[i]}).toLowerCase());
+        }
+        return lowered;
+
+    }
+
+    List<WordCounter> wordCounterList = null;
+    public void processWord(String word) {
+        if( wordCounterList == null ) {
+            wordCounterList = new ArrayList<>();
+            wordCounterList.add(new WordCounter(storedCase(word),1));
+        }
+        else {
+            int activeIndex = -1, foundIndex = -1;
+            WordCounter newItem = null;
+            for( WordCounter item : wordCounterList ) {
+                activeIndex++;
+                if( false
+                        || wordsEqual(toUpperCase(item.word),toLowerCase(word))
+                        || wordsEqual(toLowerCase(item.word),toUpperCase(word))
+                        || wordsEqual(item.word,toUpperCase(word))
+                        // || wordsEqual(toUpperCase(item.word),word)
+                        || wordsEqual(item.word,toLowerCase(word))
+                        // || wordsEqual(toLowerCase(item.word),word)
+                        || wordsEqual(item.word,word)
+                        || wordsEqual(storedCase(item.word),storedCase(word))
+                        || wordsEqual(toLowerCase(item.word),toLowerCase(word))
+                        || item.word.toLowerCase().equals(word.toLowerCase())
+                        ) {
+                    newItem = new WordCounter(storedCase(word),item.counter + 1);
+                    foundIndex = activeIndex;
+                        
+                }
+            }
+
+            if( newItem == null) {
+                // new word we haven't seen before
+                newItem = new WordCounter(storedCase(word), 1);
+            }
+
+            // create an new updated list
+            List<WordCounter> newWordCounterList = new ArrayList<>();
+            for( int index = 0; index < wordCounterList.size(); index++ ) {
+                if( index == foundIndex) {
+                    newWordCounterList.add(new WordCounter(storedCase(newItem.word), newItem.counter));
+                }
+                else {
+                    newWordCounterList.add(new WordCounter(storedCase(wordCounterList.get(index).word), wordCounterList.get(index).counter));
+                }
+            }
+
+            // new word we hadn't seen before, add to new updated list
+            if( foundIndex < 0) {
+                newWordCounterList.add(new WordCounter(storedCase(newItem.word), newItem.counter));
+            }
+
+            // clear out the old list
+            for( int index = wordCounterList.size(); index-- > 0; ) {
+                wordCounterList.remove(index);
+            }
+            
+            wordCounterList = new ArrayList<>();
+
+            // move new items back to master list
+            for( int index = 0; index < newWordCounterList.size(); index++) {
+                wordCounterList.add(new WordCounter(storedCase(newWordCounterList.get(index).word), newWordCounterList.get(index).counter));           
+            }
+        }
+
+        // redo the full map every time we process a word
+        List<String> keys = new ArrayList<>(wordCounts.keySet());
+        for( String key : keys ) {
+            wordCounts.remove(toLowerCase(key));
+        }
+        wordCounts.clear();
+        for( int index = 0; index < wordCounterList.size(); index++ ) {
+            WordCounter item = wordCounterList.get(index);
+            String key = toLowerCase(item.word);
+            wordCounts.put(key,item.counter);
+        }
+
+    }
+
+    public void finish() throws IOException {
+        for( int index = wordCounterList.size(); index-- > 0; ) {
+            assert( wordCounts.containsKey(toLowerCase(wordCounterList.get(index).word)));
+            wordCounterList.remove(index);
+        }
+        System.out.println();
+    
+    }
+
+    static class WordCounter {
+        public String word;
+        public Integer counter;
+
+        public WordCounter(String word, Integer counter) {
+            this.word = word;
+            this.counter = counter;
+        }
+    }
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,7 +392,7 @@ interface IWordFrequencyCounter {
 // similar to original FastCounter (below), 
 // but much simpler file i/o
 //
-class FastCounter2 implements IWordFrequencyCounter {
+class FastCounter2 extends WordFrequencyCounterBase {
 
     Map<String,Integer> wordCounts = new HashMap<>();
 
@@ -195,7 +403,7 @@ class FastCounter2 implements IWordFrequencyCounter {
     }
 
     int lineNum = 0;
-    Pattern pattern = Pattern.compile("[^\s]+");
+    Pattern pattern = Pattern.compile("[^\s\r\n\t\f]+");
     Matcher matcher;
 
     public String getNextWord() throws IOException {
@@ -223,26 +431,10 @@ class FastCounter2 implements IWordFrequencyCounter {
 
     }
 
-    public void processWord(String nextWord) {
-        String key = nextWord.toLowerCase();
-        Integer countSoFar = wordCounts.get(key);
-        boolean firstTime = countSoFar == null || countSoFar.intValue() == 0;
-        if( !firstTime ) {
-            countSoFar++;
-        }
-        else {
-            countSoFar = Integer.valueOf(1);
-        }
-        wordCounts.put(key, countSoFar);
 
+    public void finish() throws IOException {
+        // nothing to clean up in this impl
     }
-
-    public Map<String, Integer> getWordCounts() {
-        return wordCounts;
-    }
-
-
-    
 
 }
 
@@ -251,30 +443,10 @@ class FastCounter2 implements IWordFrequencyCounter {
 // original (fast, presumably) impl;
 // utilizes standard lib
 // 
-class FastCounter implements IWordFrequencyCounter {
+class FastCounter extends WordFrequencyCounterBase {
 
     static final boolean VERBOSE = false;
 
-    Map<String,Integer> wordCounts = new HashMap<>();
-
-    public Map<String, Integer> getWordCounts() {
-        return wordCounts;
-    }
-    
-    
-    public void processWord(String nextWord) {
-        String key = nextWord.toLowerCase();
-        Integer countSoFar = wordCounts.get(key);
-        boolean firstTime = countSoFar == null || countSoFar.intValue() == 0;
-        if( !firstTime ) {
-            countSoFar++;
-        }
-        else {
-            countSoFar = Integer.valueOf(1);
-        }
-        wordCounts.put(key, countSoFar);
-
-    }
 
     static final int FILE_BUFF_SIZE = 64*1024;
     BufferedReader fileReader;
@@ -283,7 +455,7 @@ class FastCounter implements IWordFrequencyCounter {
     int offset = 0;
     boolean eof = false;
 
-    Pattern pattern = Pattern.compile("[^\s\r\n]+");
+    Pattern pattern = Pattern.compile("[^\s\r\n\t\f]+");
     Matcher matcher;
 
     //
@@ -418,4 +590,35 @@ class FastCounter implements IWordFrequencyCounter {
 
         wordCounts.clear();
     }
+
+    public void finish() throws IOException {
+        if( fileReader != null ) {
+            fileReader.close();
+        }
+    }
+}
+
+abstract class WordFrequencyCounterBase implements IWordFrequencyCounter {
+
+    Map<String,Integer> wordCounts = new HashMap<>();
+
+    public Map<String, Integer> getWordCounts() {
+        return wordCounts;
+    }
+    
+    
+    public void processWord(String nextWord) {
+        String key = nextWord.toLowerCase();
+        Integer countSoFar = wordCounts.get(key);
+        boolean firstTime = countSoFar == null || countSoFar.intValue() == 0;
+        if( !firstTime ) {
+            countSoFar++;
+        }
+        else {
+            countSoFar = Integer.valueOf(1);
+        }
+        wordCounts.put(key, countSoFar);
+
+    }
+
 }

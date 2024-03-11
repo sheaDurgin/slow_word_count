@@ -228,7 +228,10 @@ class SlowCounter extends WordFrequencyCounterBase {
                 char[] wordSoFar = new char[nextWord.length()+1];
                 nextWord.getChars(0, nextWord.length(), wordSoFar, 0);
                 wordSoFar[nextWord.length()] = (char)nextChar;
-                nextWord = new String(wordSoFar);
+                nextWord = new String();
+                for( char c : wordSoFar) {
+                    nextWord = nextWord.concat(new String(new char[]{c}));
+                }
             }
 
         }
